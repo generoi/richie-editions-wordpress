@@ -1,0 +1,35 @@
+name: Build
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '5 4 * * *'
+jobs:
+  build:
+    name: Update plugin
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      updated: ${{ steps.update.outputs.updated }}
+      version: ${{ steps.update.outputs.version }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Retrieve the latest version number
+        run: |
+          git clone --depth 1 https://github.com/richiefi/richie-editions-wordpress.git package
+          {
+            echo 'LATEST_VERSION<<EOF'
+            cat package/richie-editions-wp.php | grep 'Version:' | sed 's/.*: *//'
+            echo 'EOF'
+          } >> "$GITHUB_ENV"
+          rm -rf package
+
+      - name: Update repo
+        uses: generoi/github-action-update-plugins@master
+        id: update
+        with:
+          download_url: https://github.com/richiefi/richie-editions-wordpress/archive/refs/tags/v${{ env.LATEST_VERSION }}.zip
+          version: ${{ env.LATEST_VERSION }}
+          strip_archive_folder: 'true'
